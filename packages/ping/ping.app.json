@@ -1,0 +1,49 @@
+{
+    "name": "ping_app",
+    "modules": [
+        "ping:ping_components"
+    ],
+    "graph": {
+        "nodes": [
+            {
+                "name": "ping_node",
+                "components": [
+                    {
+                        "name": "message_ledger",
+                        "type": "isaac::alice::MessageLedger"
+                      },
+                    {
+                        "name": "ping_component",
+                        "type": "Ping"
+                    }
+                ]
+            },
+            {
+                "name": "pong_node",
+                "components": [
+                    {
+                        "name": "message_ledger",
+                        "type": "isaac::alice::MessageLedger"
+                    },
+                    {
+                        "name": "pong_component",
+                        "type": "Pong"
+                    }
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "source": "ping_node/ping_component/ping",
+                "target": "pong_node/pong_component/trigger"
+            }
+        ]
+    },
+    "config": {
+        "ping_node": {
+            "ping_component" : {
+                "tick_period": "1Hz"
+            }
+        }
+    }
+}

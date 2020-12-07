@@ -1,0 +1,59 @@
+tensorflow-gpu==1.15.0
+pycapnp>=0.6.3
+keras
+Pillow
+psutil>=5.6.3
+scipy
+graphviz
+nltk
+onnx==1.4.1
+onnxmltools
+tf2onnx
+
+# Deps for creating pip packages
+wheel
+setuptools
+
+# Deps for voice command training app
+h5py
+librosa>=0.6.3
+numpy
+scikit-learn
+SoundFile>=0.10.2
+tqdm
+
+# Deps for object detection evaluation
+matplotlib
+pandas
+seaborn
+
+# Deps for object pose estimation training
+tensorflow-graphics-gpu
+lazy_property
+
+# Sphinx for document generation
+sphinx
+alabaster
+babel
+imagesize
+jinja2
+sphinx-rtd-theme
+
+# PyTorch
+torch
+torchvision
+
+# Dependencies for engine
+tabulate
+numpy-quaternion
+
+# Jupyter Notebook
+jupyterlab
+
+# Dependency for engine/pyalice/gui/composite_widget.py
+ipywidgets
+
+# Dependencies for evaluation on datasets
+dvc[all]
+mlflow
+papermill
