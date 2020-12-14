@@ -32,26 +32,14 @@
             {
               "name": "RealsenseLeftPoseInitializer",
               "type": "isaac::alice::PoseInitializer"
-            },{
+            },
+            {
               "name": "RealsenseRightPoseInitializer",
               "type": "isaac::alice::PoseInitializer"
             },
             {
               "name": "LidarPoseInitializer",
               "type": "isaac::alice::PoseInitializer"
-            }
-          ]
-        },
-        {
-          "name": "pose_tree_injector",
-          "components": [
-            {
-              "name": "MessageLedger",
-              "type": "isaac::alice::MessageLedger"
-            },
-            {
-              "name": "PoseMessageInjector",
-              "type": "isaac::alice::PoseMessageInjector"
             }
           ]
         },
@@ -109,6 +97,19 @@
             {
               "name": "StereoVisualOdometry",
               "type": "isaac::StereoVisualOdometry"
+            }
+          ]
+        },
+        {
+          "name": "pose_tree_injector",
+          "components": [
+            {
+              "name": "MessageLedger",
+              "type": "isaac::alice::MessageLedger"
+            },
+            {
+              "name": "PoseMessageInjector",
+              "type": "isaac::alice::PoseMessageInjector"
             }
           ]
         },
