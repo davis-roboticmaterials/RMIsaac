@@ -1,0 +1,46 @@
+{
+  "name": "rm_rosbridge",
+  "modules": [
+    "sight"
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "name": "ros_to_perception",
+        "subgraph": "packages/ros_bridge/apps/ros_to_perception.subgraph.json"
+      },
+      {
+        "name": "viewer",
+        "components": [
+          {
+            "name": "MessageLedger",
+            "type": "isaac::alice::MessageLedger"
+          },
+          {
+            "name": "ImageViewer",
+            "type": "isaac::viewers::ImageViewer"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "ros_to_perception.subgraph/interface/color",
+        "target": "viewer/ImageViewer/image"
+      }
+    ]
+  },
+  "config": {
+    "ros_to_perception.ros_converters": {
+      "RosToDepth": {
+        "channel_name": "/camera/depth/image_rect_raw"
+      },
+      "RosToCameraIntrinsics": {
+        "channel_name": "/camera/color/camera_info"
+      },
+      "RosToImage": {
+        "channel_name": "/camera/color/image_raw"
+      }
+    }
+  }
+}

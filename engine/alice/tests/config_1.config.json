@@ -1,9 +1,0 @@
-{
-  "test node": {
-    "test component": {
-      "foo": "hola2",
-      "bar": 38,
-      "xin": true
-    }
-  }
-}

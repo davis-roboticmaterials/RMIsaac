@@ -35,7 +35,7 @@ def set_gerrit_verified( String score="0", String gerritMessage = "Not verified"
 
 def run_in_ci_docker(String command, Boolean nvidia_runtime=false) {
     script {
-        def isaac_build_container = docker.build('isaacbuild', '-f engine/build/docker/Dockerfile engine/build')
+        def isaac_build_container = docker.build('isaacbuild', '-f engine/engine/build/docker/Dockerfile engine/engine/build')
         def runtime = ''
         if(nvidia_runtime) {
             runtime = '--runtime=nvidia'
@@ -45,6 +45,7 @@ def run_in_ci_docker(String command, Boolean nvidia_runtime=false) {
             dir(HOME) {
                 dir(WORKSPACE) {
                     sh "echo build --remote_http_cache=http://${NODE_NAME}:8080 > ~/.bazelrc"
+                    sh "echo build --repository_cache=/var/cache/bazel/repository >> ~/.bazelrc"
                     sh command
                 }
             }
@@ -146,10 +147,10 @@ pipeline {
         GERRIT_SERVER="git-master.nvidia.com"
         CREDENTIALS_ID="isaac-git-master"
         CI_EMAIL_NOTICE_DESTINATARY = "isacc-sdk-ci@exchange.nvidia.com"
-        DOCKER_ARGUMENTS='-e HOME=/tmp -v /etc/passwd:/etc/passwd:ro'
+        DOCKER_ARGUMENTS='-e HOME=/tmp -v /etc/passwd:/etc/passwd:ro -v /var/cache/bazel/repository:/var/cache/bazel/repository -v /tmp:/tmp'
         SCORE=0
-        ARTIFACTORY_URL_X86="https://sc-hw-artf.nvidia.com/isaac-sdk-builds-local/x86_tests"
-        ARTIFACTORY_URL_JETSON="https://sc-hw-artf.nvidia.com/isaac-sdk-builds-local/jetson_tests"
+        ARTIFACTORY_URL_X86="https://urm.nvidia.com/artifactory/sw-isaac-sdk-generic-local/x86_tests"
+        ARTIFACTORY_URL_JETSON="https://urm.nvidia.com/artifactory/sw-isaac-sdk-generic-local/jetson_tests"
     }
     parameters {
         string(
@@ -168,7 +169,7 @@ pipeline {
     options {
         ansiColor('xterm')
         timestamps()
-        timeout(time: 2, unit: 'HOURS')
+        timeout(time: 8, unit: 'HOURS')
     }
     stages {
         stage("Pre-Build Actions") {
@@ -201,7 +202,7 @@ pipeline {
                 }
                 stage("Lint") {
                     steps {
-                        run_in_ci_docker 'bazel test --config=lint ...'
+                        run_in_ci_docker 'cd engine; bazel test --config=lint ...; cd ../sdk; bazel test --config=lint ...'
                     }
                     post {
                         failure {
@@ -233,8 +234,8 @@ pipeline {
                             steps {
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-login', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASS')]) {
                                     run_in_ci_docker("""
-                                    chmod +x engine/build/scripts/artif_build_upload.sh
-                                    ./engine/build/scripts/artif_build_upload.sh -d jetpack43 -a ${env.ARTIFACTORY_URL_JETSON}/${BUILD_NUMBER} -u u$ARTIFACTORY_USER -p $ARTIFACTORY_PASS
+                                    chmod +x engine/engine/build/scripts/artif_build_upload.sh
+                                    ./engine/engine/build/scripts/artif_build_upload.sh -d jetpack44 -a ${env.ARTIFACTORY_URL_JETSON}/${BUILD_NUMBER} -u u$ARTIFACTORY_USER -p $ARTIFACTORY_PASS
                                     """, false)
                                 }
                             }
@@ -247,19 +248,20 @@ pipeline {
                         stage("Jetson Run"){
                             agent {
                                 node {
-                                    label 'jetson'
+                                    label 'jetson-4.4'
                                 }
                             }
                             steps {
                                 sh "rm -rf jetson_testlog"
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-login', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASS')]) {
-                                    sh "chmod +x engine/build/scripts/artif_download_run.sh"
-                                    sh "./engine/build/scripts/artif_download_run.sh u$ARTIFACTORY_USER $ARTIFACTORY_PASS ${env.ARTIFACTORY_URL_JETSON}/${BUILD_NUMBER} ${BUILD_NUMBER}"
+                                    sh "chmod +x engine/engine/build/scripts/artif_download_run.sh"
+                                    sh "./engine/engine/build/scripts/artif_download_run.sh u$ARTIFACTORY_USER $ARTIFACTORY_PASS ${env.ARTIFACTORY_URL_JETSON}/${BUILD_NUMBER} ${BUILD_NUMBER}"
                                 }
                             }
                             post {
                                 always {
-                                    junit 'jetson_testlog/*.xml'
+                                    archiveArtifacts artifacts: 'jetson_testlog/**/*.xml'
+                                    junit 'jetson_testlog/**/*.xml'
                                     sh "rm -r *"
                                     sh "rm -rf /tmp/isaac"
                                 }
@@ -276,7 +278,7 @@ pipeline {
                     stages {
                         stage("Build") {
                             steps {
-                                run_in_ci_docker "bazel build ..."
+                                run_in_ci_docker "cd engine; bazel build ...; cd ../sdk; bazel build ..."
                             }
                             post {
                                 failure {
@@ -293,26 +295,36 @@ pipeline {
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-login',
                                     usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASS')]) {
                                     script {
-                                        def isaac_build_container = docker.build('isaacbuild', '-f engine/build/docker/Dockerfile engine/build')
+                                        def isaac_build_container = docker.build('isaacbuild', '-f engine/engine/build/docker/Dockerfile engine/engine/build')
                                         def runtime = '--runtime=nvidia'
                                         isaac_build_container.inside("${DOCKER_ARGUMENTS} ${runtime}") {
                                             dir(HOME) {
                                                 dir(WORKSPACE) {
                                                     def BAZEL_TESTS_FAILED = "false"
+
                                                     sh "echo build --remote_http_cache=http://${NODE_NAME}:8080 > ~/.bazelrc"
+                                                    sh "echo build --repository_cache=/var/cache/bazel/repository >> ~/.bazelrc"
+
                                                     try {
-                                                        sh "bazel test --test_tag_filters=-performance ..."
+                                                        dir("engine") {
+                                                            sh "[ -d bazel-testlogs ] && rm -rf bazel-testlogs/*"
+                                                            sh "bazel test --test_tag_filters=-performance ... || bazel test --jobs 1 --test_tag_filters=-performance ..."
+                                                        }
+
+                                                        dir("sdk") {
+                                                            sh "[ -d bazel-testlogs ] && rm -rf bazel-testlogs/*"
+                                                            sh "bazel test --test_tag_filters=-performance ... || bazel test --jobs 1 --test_tag_filters=-performance ..."
+                                                        }
                                                     }
                                                     catch (Exception e) {
                                                         sh "echo Bazel tests failed"
                                                         BAZEL_TESTS_FAILED = "true"
                                                     }
-                                                    sh "chmod +x engine/build/scripts/bazel_tests_upload.sh"
-                                                    sh "./engine/build/scripts/bazel_tests_upload.sh u$ARTIFACTORY_USER $ARTIFACTORY_PASS ${env.ARTIFACTORY_URL_X86}/${BUILD_NUMBER}"
+                                                    sh "./engine/engine/build/scripts/bazel_tests_upload.sh u$ARTIFACTORY_USER $ARTIFACTORY_PASS ${env.ARTIFACTORY_URL_X86}/${BUILD_NUMBER}.tar"
                                                     sh "rm -rf bazel-testlog"
                                                     sh "rm -rf $WORKSPACE/bazel-testlog"
-                                                    sh "curl -u$ARTIFACTORY_USER:$ARTIFACTORY_PASS -O ${env.ARTIFACTORY_URL_X86}/${BUILD_NUMBER}"
-                                                    sh "tar -xvf ${BUILD_NUMBER}"
+                                                    sh "curl -u$ARTIFACTORY_USER:$ARTIFACTORY_PASS -O ${env.ARTIFACTORY_URL_X86}/${BUILD_NUMBER}.tar"
+                                                    sh "tar -xvf ${BUILD_NUMBER}.tar"
                                                     sh "cp -r bazel_tests_directory $WORKSPACE/bazel_testlog"
                                                     if(BAZEL_TESTS_FAILED == 'true') {
                                                         sh "exit -1"
@@ -335,6 +347,21 @@ pipeline {
                                     junit 'bazel_testlog/**/test.xml'
                                     cleanWs()
                                 }
+                            }
+                        }
+                    }
+                }
+
+                stage("Release Branch") {
+                    agent {
+                        node {
+                            label 'isaac && gpu'
+                        }
+                    }
+                    stages {
+                        stage("Build release") {
+                            steps {
+                                run_in_ci_docker "release/create_release.sh"
                             }
                         }
                     }

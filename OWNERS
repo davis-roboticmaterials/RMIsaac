@@ -5,3 +5,4 @@ matchers:
 - suffix: .rst
   owners:
   - Peter Gambrill
+  - Emily Huang
