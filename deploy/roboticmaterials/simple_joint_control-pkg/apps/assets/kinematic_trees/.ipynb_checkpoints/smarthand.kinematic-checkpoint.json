@@ -1,0 +1,81 @@
+{
+    "links": [
+      {
+        "name" : "axis",
+        "motor": {
+          "type": "constant",
+          "properties": {
+            "pose": [0, 1, 0, 0, 0.0, 0.0, 0]
+          }
+        }
+      },
+      {
+        "name" : "left_finger",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      },
+      {
+        "name" : "left_finger_joint",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      },
+      {
+        "name" : "left_finger_upper",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      },
+      {
+        "name" : "right_finger",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      },
+      {
+        "name" : "right_finger_joint",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      },
+      {
+        "name" : "right_finger_upper",
+        "parent": "axis",
+        "motor": {
+          "type": "revolute",
+          "properties": {
+            "axis": [0, 1, 0],
+            "limits": [0.0, 1.309]
+          }
+        }
+      }
+    ]
+  }
+  
+  
